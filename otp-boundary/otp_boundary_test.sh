@@ -67,6 +67,10 @@ command -v curl    >/dev/null        || fail "curl required"
 # Token is passed via a curl config file so it never appears in `ps` or logs.
 AUTH_CFG="$WORK/auth.cfg"
 printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" > "$AUTH_CFG"
+chmod 600 "$AUTH_CFG"
+# Loud self-check: token must be in the config (pattern read via FD, never argv).
+grep -qF -f <(printf '%s\n' "$TOKEN") "$AUTH_CFG" || fail "token failed to reach the curl config"
+grep -q '\*\*\*' "$AUTH_CFG" && fail "literal *** in auth config — paste the real token"
 
 # api <METHOD> <URL> <OUTFILE> [with_appid=1] -> prints HTTP code
 api(){
