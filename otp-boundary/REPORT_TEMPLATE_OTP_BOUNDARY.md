@@ -1,5 +1,5 @@
 <!--
-Fill ONLY from run.log of deriv_otp_v5.sh. Delete this comment before submitting.
+Fill ONLY from run.log of deriv_otp_v7.sh. Delete this comment before submitting.
 Submit only if the VERDICT line says CRITICAL (session bound to FOREIGN).
 - Issuance-only 200 (WS rejected or CONFIRM_BINDING=0)  -> rewrite as Low/Informative or do not submit.
 - 200 but session bound to OWN account                  -> NOT a vulnerability, do not submit.
