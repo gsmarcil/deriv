@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DerivWS OTP account-binding evidence probe v7 (v6 + 3 fixes, see FIX v7 tags); both DEMO accounts must be yours.
+# DerivWS OTP account-binding evidence probe v7.1 (v6 + fixes, see FIX v7 tags); both DEMO accounts must be yours.
 # No trading. No token/OTP value printed. No live requests until TOKEN_A is supplied.
 # Set TOKEN_A_FILE=/secure/path/pat-a and optionally TOKEN_B_FILE=/secure/path/pat-b;
 # otherwise PAT A is read silently from the terminal. Do NOT use bash -x.
@@ -218,7 +218,7 @@ if [[ -n "${TOKEN_B_FILE:-}" ]]; then
   HAVE_B=1
 fi
 
-printf '=== DerivWS OTP v7; A=%s B=%s; independent B proof=%s ===\n' "$OWN_DEMO_ID" "$FOREIGN" "$HAVE_B"
+printf '=== DerivWS OTP v7.1; A=%s B=%s; independent B proof=%s ===\n' "$OWN_DEMO_ID" "$FOREIGN" "$HAVE_B"
 A_STATUS=$(api GET 'accounts' "$WORK/accounts_a.json" "$WORK/auth_a.cfg") || exit $?  # FIX v7: transport error is not an auth verdict
 printf 'A accounts HTTP %s\n' "$A_STATUS"
 [[ "$A_STATUS" == 200 ]] || fail 'A token invalid/missing scope/App ID; no ownership verdict' 2
@@ -281,8 +281,13 @@ case "$FOREIGN_STATUS" in
       python3 - "$WSB" "$FOREIGN" "$OWN_DEMO_ID" "$HAVE_B" "$ID_CTRL" <<'PY'
 import json,sys
 r=json.loads(sys.argv[1]);b=sys.argv[2].upper();a=sys.argv[3].upper();proof=sys.argv[4]=='1';idc=sys.argv[5]
-if idc!='OK' and r.get('verified_upgrade'):
-    print('VERDICT: WS opened with B OTP but balance exposes no account id -> binding UNPROVABLE with this probe')
+# FIX v7.1: check B's own reply identity first; A-control NOID only matters when B also has no id.
+ident_b=(r.get('balance_account') or '').upper()
+if r.get('verified_upgrade') and r.get('balance_ok') and ident_b==b:
+    note='' if idc=='OK' else ' (note: A control reply had no account id; B identity taken from B reply itself)'
+    print(('VERDICT: CROSS-ACCOUNT READ OBSERVED' if proof else 'VERDICT: B ACCOUNT DATA OBSERVED, independent B ownership unverified')+note)
+elif idc!='OK' and r.get('verified_upgrade') and not ident_b:
+    print('VERDICT: WS opened with B OTP but neither reply exposes an account id -> binding UNPROVABLE with this probe')
 elif not r.get('verified_upgrade'):
     print('VERDICT: issuance anomaly only; no successful WS upgrade')
 elif not r.get('balance_ok'):
